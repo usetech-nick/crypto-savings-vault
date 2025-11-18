@@ -6,8 +6,9 @@ import "~~/styles/globals.css";
 import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 
 export const metadata = getMetadata({
-  title: "Scaffold-ETH 2 App",
-  description: "Built with 🏗 Scaffold-ETH 2",
+  title: "Crypto Savings Vault - Decentralized Savings with Dynamic Interest",
+  description:
+    "Save your crypto assets and earn interest automatically. Decentralized savings vault with dynamic interest rates powered by Tellor oracle.",
 });
 
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
