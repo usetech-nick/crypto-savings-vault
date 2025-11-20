@@ -11,7 +11,7 @@ import {
   LockClosedIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
-import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
+import { ConnectButton } from "~~/components/ConnectButton";
 
 const Home: NextPage = () => {
   const { isConnected } = useAccount();
@@ -76,7 +76,7 @@ const Home: NextPage = () => {
                 </Link>
               ) : (
                 <div className="[&_button]:!px-8 [&_button]:!py-3 [&_button]:!bg-accent [&_button]:hover:!bg-accent/90 [&_button]:!text-accent-foreground [&_button]:!rounded-lg [&_button]:!font-semibold [&_button]:!transition-colors">
-                  <RainbowKitCustomConnectButton />
+                  <ConnectButton />
                 </div>
               )}
               <Link href="/debug" className="px-8 py-3 hover:bg-background rounded-lg font-semibold transition-colors">
@@ -255,7 +255,7 @@ const Home: NextPage = () => {
               </Link>
             ) : (
               <div className="[&_button]:!px-8 [&_button]:!py-3 [&_button]:!bg-accent [&_button]:hover:!bg-accent/90 [&_button]:!text-accent-foreground [&_button]:!rounded-lg [&_button]:!font-semibold [&_button]:!transition-colors">
-                <RainbowKitCustomConnectButton />
+                <ConnectButton />
               </div>
             )}
             <Link href="/debug" className="px-8 py-3 hover:bg-background rounded-lg font-semibold transition-colors">
