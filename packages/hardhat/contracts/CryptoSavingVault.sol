@@ -1,79 +1,89 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/ITellor.sol";
 
 /**
  * @title CryptoSavingsVault
- * @dev Simple ETH savings vault with per-user simple interest.
- *      APR dynamically changes based on ETH/USD price from the Tellor oracle.
+ * @dev ETH savings vault with per-user simple interest.
+ *      APR changes based on ETH/USD price from the Tellor oracle.
  *
- * Logic:
- *  - If ETH < $3000 → APR = 6%
- *  - If ETH ≥ $3000 → APR = 3%
+ * Simple Interest:
+ *   interest = principal * aprBps * timeElapsed / (365 days * 10000)
  *
- *  APR is in basis points:
- *      600 → 6%
- *      300 → 3%
- *
- *  Simple Interest Formula:
- *      interest = principal * aprBps * timeElapsed / (365 days * 10000)
+ * Admin (owner) can update:
+ *  - minDeposit, maxDeposit
+ *  - ethThreshold (price that flips APR)
+ *  - highAprBps, lowAprBps
+ *  - tellorOracle address
  */
-contract CryptoSavingsVault is ReentrancyGuard {
+contract CryptoSavingsVault is ReentrancyGuard, Ownable {
     // ============ State Variables ============
 
-    /// @notice principal staked per user (in wei)
     mapping(address => uint256) public balances;
-
-    /// @notice timestamp when user last updated stake (for interest calculation)
     mapping(address => uint256) public stakeTimestamps;
-
-    /// @notice interest accumulated but not yet withdrawn (in wei)
     mapping(address => uint256) public accruedInterest;
-
-    /// @notice total ETH staked in the vault (principal only)
     uint256 public totalStaked;
 
-    /// @notice Tellor oracle address
     address public tellorOracle;
-
-    /// @notice APR when ETH < $3000 (6%)
-    uint256 public constant HIGH_APR = 600;
-
-    /// @notice APR when ETH >= $3000 (3%)
-    uint256 public constant LOW_APR = 300;
-
-    /// @notice Basis points denominator
-    uint256 public constant BPS_DENOM = 10000;
-
-    /// @notice Threshold for switching APR (18 decimals)
-    uint256 public constant ETH_THRESHOLD = 3000e18;
-
-    /// @notice Tellor query id for ETH/USD
     bytes32 public constant ETH_QUERY_ID = keccak256("ETH/USD");
+
+    // Configurable rules (bps = basis points, ETH price uses 18 decimals)
+    uint256 public minDeposit; // in wei
+    uint256 public maxDeposit; // in wei
+    uint256 public ethThreshold; // 18 decimals, e.g. 3000e18
+    uint256 public highAprBps; // e.g. 600 => 6%
+    uint256 public lowAprBps; // e.g. 300 => 3%
+
+    uint256 public constant BPS_DENOM = 10000;
 
     // ============ Events ============
 
     event Staked(address indexed user, uint256 amount, uint256 timestamp);
     event Withdrawn(address indexed user, uint256 principal, uint256 interest, uint256 timestamp);
+    event RulesUpdated(
+        uint256 minDeposit,
+        uint256 maxDeposit,
+        uint256 ethThreshold,
+        uint256 highAprBps,
+        uint256 lowAprBps
+    );
+    event TellorOracleUpdated(address indexed oldOracle, address indexed newOracle);
 
     // ============ Constructor ============
 
-    constructor(address _tellorOracle) {
+    constructor(
+        address _tellorOracle,
+        uint256 _minDeposit,
+        uint256 _maxDeposit,
+        uint256 _ethThreshold,
+        uint256 _highAprBps,
+        uint256 _lowAprBps
+    ) {
+        require(_minDeposit <= _maxDeposit, "min > max");
+        require(_highAprBps <= BPS_DENOM && _lowAprBps <= BPS_DENOM, "APR invalid");
+
         tellorOracle = _tellorOracle;
+        minDeposit = _minDeposit;
+        maxDeposit = _maxDeposit;
+        ethThreshold = _ethThreshold;
+        highAprBps = _highAprBps;
+        lowAprBps = _lowAprBps;
     }
 
     // ============ Core Functions ============
 
     /**
      * @notice Stake ETH into the vault.
-     * Moves any pending interest into accruedInterest & resets timestamp.
      */
     function stake() public payable nonReentrant {
         require(msg.value > 0, "Amount must be > 0");
+        require(msg.value + balances[msg.sender] >= minDeposit, "Below min deposit");
+        require(msg.value + balances[msg.sender] <= maxDeposit, "Above max deposit");
 
-        // If user already staked, add pending interest to accrued pool
+        // Move pending interest to accruedInterest
         if (balances[msg.sender] > 0 && stakeTimestamps[msg.sender] != 0) {
             uint256 pending = _calculatePendingInterest(msg.sender);
             if (pending > 0) {
@@ -81,7 +91,6 @@ contract CryptoSavingsVault is ReentrancyGuard {
             }
         }
 
-        // Increase principal & update timestamp
         balances[msg.sender] += msg.value;
         stakeTimestamps[msg.sender] = block.timestamp;
         totalStaked += msg.value;
@@ -90,18 +99,16 @@ contract CryptoSavingsVault is ReentrancyGuard {
     }
 
     /**
-     * @notice Withdraw principal + proportional simple interest.
+     * @notice Withdraw principal + proportional interest.
      */
     function withdraw(uint256 amount) external nonReentrant {
         require(amount > 0, "Amount must be > 0");
         uint256 principal = balances[msg.sender];
         require(principal >= amount, "Insufficient balance");
 
-        // Calculate total interest (accrued + pending)
         uint256 pending = _calculatePendingInterest(msg.sender);
         uint256 totalInterestAvailable = accruedInterest[msg.sender] + pending;
 
-        // User withdraws interest proportional to the amount withdrawn
         uint256 interestForWithdraw = 0;
         if (totalInterestAvailable > 0 && principal > 0) {
             interestForWithdraw = (totalInterestAvailable * amount) / principal;
@@ -114,55 +121,53 @@ contract CryptoSavingsVault is ReentrancyGuard {
         uint256 remainingInterest = totalInterestAvailable - interestForWithdraw;
         accruedInterest[msg.sender] = remainingInterest;
 
-        // Reset timestamp for remaining principal
         if (balances[msg.sender] > 0) {
             stakeTimestamps[msg.sender] = block.timestamp;
         } else {
             stakeTimestamps[msg.sender] = 0;
         }
 
-        // Pay ETH
         uint256 payout = amount + interestForWithdraw;
+        require(address(this).balance >= payout, "Vault: insufficient contract balance");
+
         (bool sent, ) = msg.sender.call{ value: payout }("");
         require(sent, "ETH transfer failed");
 
         emit Withdrawn(msg.sender, amount, interestForWithdraw, block.timestamp);
     }
 
-    // ============ Oracle-Based APR Logic ============
+    // ============ Oracle & APR Logic ============
 
     /**
      * @notice Return current APR in basis points depending on ETH price.
      */
     function getCurrentAPR() public view returns (uint256) {
         uint256 ethPrice = getETHPrice();
-        return (ethPrice < ETH_THRESHOLD) ? HIGH_APR : LOW_APR;
+        return (ethPrice < ethThreshold) ? highAprBps : lowAprBps;
     }
 
     /**
      * @notice Get ETH/USD price from Tellor (18 decimals).
-     * Fallback → threshold (forces LOW_APR).
+     * Fallback -> return ethThreshold so APR deterministically uses lowAprBps when oracle fails.
      */
     function getETHPrice() public view returns (uint256) {
-        if (tellorOracle == address(0)) return ETH_THRESHOLD;
+        if (tellorOracle == address(0)) return ethThreshold;
 
         try ITellor(tellorOracle).getCurrentValue(ETH_QUERY_ID) returns (
             bool ifRetrieve,
             bytes memory value,
             uint256 /*timestamp*/
         ) {
-            if (!ifRetrieve || value.length == 0) return ETH_THRESHOLD;
-
+            if (!ifRetrieve || value.length == 0) return ethThreshold;
             uint256 decoded = abi.decode(value, (uint256));
-            if (decoded == 0) return ETH_THRESHOLD;
-
+            if (decoded == 0) return ethThreshold;
             return decoded;
         } catch {
-            return ETH_THRESHOLD;
+            return ethThreshold;
         }
     }
 
-    // ============ View Helpers ============
+    // ============ Views ============
 
     function calculateInterest(address user) public view returns (uint256) {
         return accruedInterest[user] + _calculatePendingInterest(user);
@@ -186,16 +191,49 @@ contract CryptoSavingsVault is ReentrancyGuard {
 
         uint256 aprBps = getCurrentAPR();
 
+        // interest = principal * aprBps * dt / (365 days * BPS_DENOM)
         uint256 numerator = principal * aprBps * dt;
         uint256 denom = 365 days * BPS_DENOM;
-
         return numerator / denom;
     }
 
     // ============ Admin ============
 
-    function setTellorOracle(address _tellor) external {
+    /**
+     * @notice Owner can update Tellor oracle address.
+     */
+    function setTellorOracle(address _tellor) external onlyOwner {
+        require(_tellor != address(0), "Invalid address");
+        address old = tellorOracle;
         tellorOracle = _tellor;
+        emit TellorOracleUpdated(old, _tellor);
+    }
+
+    /**
+     * @notice Owner can update vault rules in one call.
+     * @param _minDeposit minimum deposit in wei
+     * @param _maxDeposit maximum deposit in wei
+     * @param _ethThreshold threshold price with 18 decimals (e.g. 3000e18)
+     * @param _highAprBps APR (bps) used when price < threshold
+     * @param _lowAprBps APR (bps) used when price >= threshold
+     */
+    function setRules(
+        uint256 _minDeposit,
+        uint256 _maxDeposit,
+        uint256 _ethThreshold,
+        uint256 _highAprBps,
+        uint256 _lowAprBps
+    ) external onlyOwner {
+        require(_minDeposit <= _maxDeposit, "min > max");
+        require(_highAprBps <= BPS_DENOM && _lowAprBps <= BPS_DENOM, "APR invalid");
+
+        minDeposit = _minDeposit;
+        maxDeposit = _maxDeposit;
+        ethThreshold = _ethThreshold;
+        highAprBps = _highAprBps;
+        lowAprBps = _lowAprBps;
+
+        emit RulesUpdated(_minDeposit, _maxDeposit, _ethThreshold, _highAprBps, _lowAprBps);
     }
 
     // ============ Fallback ============
