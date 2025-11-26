@@ -61,7 +61,7 @@ contract CryptoSavingsVault is ReentrancyGuard, Ownable {
         uint256 _ethThreshold,
         uint256 _highAprBps,
         uint256 _lowAprBps
-    ) {
+    ) Ownable(msg.sender) {
         require(_minDeposit <= _maxDeposit, "min > max");
         require(_highAprBps <= BPS_DENOM && _lowAprBps <= BPS_DENOM, "APR invalid");
 
