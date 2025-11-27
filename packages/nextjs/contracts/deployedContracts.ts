@@ -5,9 +5,9 @@
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
-  31337: {
+  11155111: {
     CryptoSavingsVault: {
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      address: "0x6fd341CBfa880f0f6be4aFEc356d9F0B624e2715",
       abi: [
         {
           inputs: [
@@ -332,7 +332,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 2,
+      deployedOnBlock: 9712763,
     },
   },
 } as const;
