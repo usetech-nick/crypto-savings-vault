@@ -33,7 +33,7 @@ contract CryptoSavingsVault is ReentrancyGuard, Ownable {
     // Configurable rules (bps = basis points, ETH price uses 18 decimals)
     uint256 public minDeposit; // in wei
     uint256 public maxDeposit; // in wei
-    uint256 public ethThreshold; // 18 decimals, e.g. 3000e18
+    uint256 public ethThreshold; // plain integer, e.g. 3000 USD
     uint256 public highAprBps; // e.g. 600 => 6%
     uint256 public lowAprBps; // e.g. 300 => 3%
 
@@ -161,7 +161,7 @@ contract CryptoSavingsVault is ReentrancyGuard, Ownable {
             if (!ifRetrieve || value.length == 0) return ethThreshold;
             uint256 decoded = abi.decode(value, (uint256));
             if (decoded == 0) return ethThreshold;
-            return decoded;
+            return decoded / 1e18;
         } catch {
             return ethThreshold;
         }

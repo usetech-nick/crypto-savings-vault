@@ -50,7 +50,7 @@ export default function DashboardShell() {
     functionName: "getETHPrice",
   });
 
-  const ethPrice = priceRaw ? (Number(priceRaw) / 1e8).toFixed(2) : "Loading...";
+  const ethPrice = priceRaw ? Number(priceRaw).toFixed(2) : "Loading...";
 
   return (
     <main className="min-h-screen bg-black/95 text-white p-6">
@@ -68,7 +68,7 @@ export default function DashboardShell() {
           <BalanceCard />
 
           <StatCard label="Earned Interest" value={earned} accent="green" />
-          <StatCard label="Current APR" value={`${apr}%`} accent="blue" />
+          <StatCard label="Current APR" value={`${(Number(apr) / 100).toFixed(2)}%`} accent="blue" />
           <StatCard label="ETH Price" value={`$${ethPrice}`} accent="purple" />
         </section>
 
