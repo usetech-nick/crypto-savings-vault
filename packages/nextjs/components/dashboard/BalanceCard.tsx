@@ -7,6 +7,7 @@ import { useWalletClient } from "wagmi";
 
 export default function BalanceCard() {
   const { data: wallet } = useWalletClient();
+  // components/dashboard/BalanceCard.tsx
 
   const { data: balance } = useVaultRead("balances", wallet?.account?.address);
   const { data: interest } = useVaultRead("calculateInterest", wallet?.account?.address);

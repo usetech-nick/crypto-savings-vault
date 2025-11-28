@@ -1,4 +1,3 @@
-// components/dashboard/StatCard.tsx
 "use client";
 
 import React from "react";
@@ -7,33 +6,10 @@ import CardWrapper from "./CardWrapper";
 import { useAccount } from "wagmi";
 import { useContractRead } from "wagmi";
 
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
-// components/dashboard/StatCard.tsx
-
 type Props = {
   label: string;
   valueKey: "earned" | "apr" | "price";
+  // components/dashboard/StatCard.tsx
   accent?: "green" | "blue" | "purple";
 };
 

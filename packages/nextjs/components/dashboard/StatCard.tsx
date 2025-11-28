@@ -9,6 +9,7 @@ export default function StatCard({
 }: {
   label: string;
   value: string | number;
+  // components/dashboard//StartCard.tsx
   accent: "green" | "blue" | "purple";
 }) {
   const color = {

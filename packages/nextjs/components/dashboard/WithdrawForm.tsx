@@ -1,4 +1,3 @@
-// components/dashboard/WithdrawForm.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -7,26 +6,6 @@ import CardWrapper from "./CardWrapper";
 import toast from "react-hot-toast";
 import { parseUnits } from "viem";
 import { useAccount, useWriteContract } from "wagmi";
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
-
-// components/dashboard/WithdrawForm.tsx
 
 // components/dashboard/WithdrawForm.tsx
 
