@@ -1,25 +1,20 @@
-import "@scaffold-ui/components/styles.css";
-import { ScaffoldEthAppWithProviders } from "~~/components/ScaffoldEthAppWithProviders";
-import { ThemeProvider } from "~~/components/ThemeProvider";
-import "~~/styles/globals.css";
-import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
+"use client";
 
-export const metadata = getMetadata({
-  title: "Crypto Savings Vault - Decentralized Savings with Dynamic Interest",
-  description:
-    "Save your crypto assets and earn interest automatically. Decentralized savings vault with dynamic interest rates powered by Tellor oracle.",
-});
+import Navbar from "../components/NavBar";
+import "../config/reown";
+import { ReownProvider } from "../config/reown";
+import "../styles/globals.css";
 
-const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html suppressHydrationWarning className={``}>
-      <body>
-        <ThemeProvider enableSystem>
-          <ScaffoldEthAppWithProviders>{children}</ScaffoldEthAppWithProviders>
-        </ThemeProvider>
+    <html lang="en">
+      <body className="pt-20">
+        {/* Navbar is fixed at top, so we add padding-top */}
+        <ReownProvider>
+          <Navbar /> {/* ✅ RENDER IT HERE */}
+          {children}
+        </ReownProvider>
       </body>
     </html>
   );
-};
-
-export default ScaffoldEthApp;
+}

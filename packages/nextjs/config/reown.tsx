@@ -1,5 +1,5 @@
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { hardhat, mainnet, sepolia } from "@reown/appkit/networks";
+import { sepolia } from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
@@ -12,7 +12,7 @@ if (!projectId) {
 }
 
 // 2. Set up Wagmi adapter
-const networks = [mainnet, sepolia, hardhat];
+const networks = [sepolia];
 
 const wagmiAdapter = new WagmiAdapter({
   projectId,
@@ -22,7 +22,7 @@ const wagmiAdapter = new WagmiAdapter({
 // 3. Create modal
 createAppKit({
   adapters: [wagmiAdapter],
-  networks: [mainnet, sepolia, hardhat],
+  networks: [sepolia],
   projectId,
   features: {
     analytics: true, // Optional - 0/1 analytics
