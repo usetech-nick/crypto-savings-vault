@@ -1,15 +1,33 @@
 "use client";
 
 import deployedContractsData from "../../contracts/deployedContracts";
-import { useContractRead } from "wagmi";
+import { useReadContract } from "wagmi";
 
-export default function useVaultRead(functionName: string, args?: any) {
+type VaultFunctions =
+  | "balances"
+  | "calculateInterest"
+  | "getCurrentAPR"
+  | "getETHPrice"
+  | "getTotalBalance"
+  | "accruedInterest"
+  | "stakeTimestamps"
+  | "tellorOracle"
+  | "minDeposit"
+  | "maxDeposit"
+  | "ethThreshold"
+  | "highAprBps"
+  | "lowAprBps";
+
+export default function useVaultRead(fn: VaultFunctions, args?: any) {
   const contract = deployedContractsData[11155111].CryptoSavingsVault;
 
-  return useContractRead({
+  return useReadContract({
     address: contract.address as `0x${string}`,
     abi: contract.abi,
-    functionName: functionName as any,
+    functionName: fn,
     args: args ? [args] : undefined,
+    query: {
+      refetchInterval: 3000, // keeps UI live
+    },
   });
 }

@@ -69,7 +69,7 @@ const Home: NextPage = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               {isConnected ? (
                 <Link
-                  href="/debug"
+                  href="/dashboard"
                   className="px-8 py-3 bg-accent hover:bg-accent/90 text-accent-foreground rounded-lg font-semibold transition-colors flex items-center gap-2"
                 >
                   Start Saving Now <ArrowRightIcon className="w-4 h-4" />
