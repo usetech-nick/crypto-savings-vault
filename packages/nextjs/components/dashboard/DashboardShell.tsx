@@ -8,11 +8,7 @@ import StatCard from "./StatCard";
 import WithdrawForm from "./WithdrawForm";
 import { Toaster } from "react-hot-toast";
 import { formatEther } from "viem";
-import { useContractRead, useWalletClient } from "wagmi";
-
-// components/dashboard/DashboardShell.tsx
-
-// adjust if needed
+import { useReadContract, useWalletClient } from "wagmi";
 
 export default function DashboardShell() {
   const { data: wallet } = useWalletClient();
@@ -20,37 +16,53 @@ export default function DashboardShell() {
 
   const contract = deployedContractsData[11155111].CryptoSavingsVault;
 
+  /** Format ETH Helper */
+  const formatETH = (raw: any) => {
+    if (!raw) return "0.00";
+    const eth = parseFloat(formatEther(raw));
+
+    if (eth >= 1) return eth.toFixed(3); // e.g. 2.345
+    if (eth >= 0.01) return eth.toFixed(4); // e.g. 0.0456
+    return eth.toFixed(6); // e.g. 0.000456
+  };
+
   /** ---------------------------
    *  READ: Earned Interest
    *  -------------------------- */
-  const { data: earnedRaw } = useContractRead({
+  const { data: earnedRaw } = useReadContract({
     address: contract.address,
     abi: contract.abi,
     functionName: "calculateInterest",
     args: user ? [user] : undefined,
   });
-  const earned = earnedRaw ? `${formatEther(earnedRaw)} ETH` : "Loading...";
+
+  const earnedEth = earnedRaw ? formatETH(earnedRaw) : "0.00";
 
   /** ---------------------------
    *  READ: Current APR
    *  -------------------------- */
-  const { data: aprRaw } = useContractRead({
+  const { data: aprRaw } = useReadContract({
     address: contract.address,
     abi: contract.abi,
     functionName: "getCurrentAPR",
   });
-  const apr = aprRaw ? aprRaw.toString() : "Loading...";
+
+  const apr = aprRaw ? (Number(aprRaw) / 100).toFixed(2) : "0.00";
 
   /** ---------------------------
    *  READ: ETH Price (Tellor)
    *  -------------------------- */
-  const { data: priceRaw } = useContractRead({
+  const { data: priceRaw } = useReadContract({
     address: contract.address,
     abi: contract.abi,
     functionName: "getETHPrice",
   });
 
-  const ethPrice = priceRaw ? Number(priceRaw).toFixed(2) : "Loading...";
+  const ethPrice = priceRaw ? Number(priceRaw) : 0;
+  const ethPriceFormatted = ethPrice.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <main className="min-h-screen bg-black/95 text-white p-6">
@@ -65,11 +77,19 @@ export default function DashboardShell() {
             TOP STATS ROW
         ------------------------------------- */}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <BalanceCard />
+          {/* BalanceCard handles formatting inside */}
+          <BalanceCard ethPrice={ethPrice} />
 
-          <StatCard label="Earned Interest" value={earned} accent="green" />
-          <StatCard label="Current APR" value={`${(Number(apr) / 100).toFixed(2)}%`} accent="blue" />
-          <StatCard label="ETH Price" value={`$${ethPrice}`} accent="purple" />
+          <StatCard
+            label="Earned Interest"
+            value={`${earnedEth} ETH`}
+            subvalue={`$${(Number(earnedEth) * ethPrice).toFixed(2)}`}
+            accent="green"
+          />
+
+          <StatCard label="Current APR" value={`${apr}%`} accent="blue" />
+
+          <StatCard label="ETH Price" value={`$${ethPriceFormatted}`} accent="purple" />
         </section>
 
         {/* -----------------------------------
